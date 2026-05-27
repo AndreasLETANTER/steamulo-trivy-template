@@ -28,7 +28,7 @@
     .card-medium   { background: var(--medium); color: #212121; }
     .card-low      { background: var(--low); }
 
-    .filters { padding: .75rem 2rem; background: white; display: flex; gap: .5rem; border-bottom: 1px solid #e0e0e0; align-items: center; }
+    .filters { padding: .75rem 2rem; background: white; display: flex; gap: .5rem; border-bottom: 1px solid #e0e0e0; align-items: center; flex-wrap: wrap; }
     .filters span { font-size: .85rem; color: #757575; margin-right: .25rem; }
     .filters button {
       padding: .35rem .9rem; border: 2px solid #e0e0e0; border-radius: 20px;
@@ -37,11 +37,50 @@
     }
     .filters button:hover { border-color: #9fa8da; }
     .filters button.active { border-color: #1a237e; background: #e8eaf6; color: #1a237e; }
+    .filters select {
+      padding: .35rem .75rem; border: 2px solid #e0e0e0; border-radius: 20px;
+      font-size: .82rem; font-weight: 600; background: white; color: #424242;
+      cursor: pointer; max-width: 320px;
+    }
 
     .content { padding: 1.5rem 2rem; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-    thead { background: #37474f; color: white; }
-    th { padding: .7rem 1rem; text-align: left; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+
+    /* Target grouping */
+    .target-group {
+      background: white; border-radius: 8px; margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden;
+    }
+    .target-header {
+      background: #37474f; color: white; padding: .85rem 1.25rem;
+      display: flex; align-items: center; gap: .75rem; cursor: pointer;
+      user-select: none;
+    }
+    .target-header:hover { background: #455a64; }
+    .target-toggle {
+      font-size: .8rem; transition: transform .2s; display: inline-block;
+    }
+    .target-group.collapsed .target-toggle { transform: rotate(-90deg); }
+    .target-group.collapsed table { display: none; }
+    .target-name {
+      font-family: 'SFMono-Regular', Consolas, monospace; font-size: .9rem;
+      font-weight: 600; flex: 1; word-break: break-all;
+    }
+    .target-type {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+      background: rgba(255,255,255,.15); padding: .2rem .55rem; border-radius: 4px;
+    }
+    .target-class {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+      background: rgba(255,255,255,.08); padding: .2rem .55rem; border-radius: 4px;
+      opacity: .85;
+    }
+    .target-counts { display: flex; gap: .35rem; }
+    .target-counts .badge { font-size: .68rem; padding: .15rem .45rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: .65rem 1rem; text-align: left; font-size: .72rem; text-transform: uppercase;
+         letter-spacing: .06em; white-space: nowrap; background: #eceff1; color: #455a64;
+         border-bottom: 1px solid #cfd8dc; }
     td { padding: .7rem 1rem; font-size: .88rem; border-bottom: 1px solid #f5f5f5; vertical-align: top; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { background: #fafafa; }
@@ -55,6 +94,8 @@
     .badge-UNKNOWN  { background: var(--unknown); }
 
     .pkg-name { font-weight: 600; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
+    .pkg-path { font-size: .72rem; color: #757575; font-family: 'SFMono-Regular', Consolas, monospace;
+                margin-top: .2rem; word-break: break-all; max-width: 280px; }
     .cve-id   { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
     .vuln-title { max-width: 260px; font-size: .84rem; color: #424242; }
     .version  { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
@@ -65,6 +106,7 @@
       background: none; border: none; padding: 0; text-decoration: underline;
     }
     .empty { text-align: center; padding: 3rem; color: #9e9e9e; font-size: .95rem; }
+    .target-group.all-hidden { display: none; }
   </style>
 </head>
 <body>
@@ -82,50 +124,90 @@
 </div>
 
 <div class="filters">
-  <span>Filter:</span>
+  <span>Severity:</span>
   <button class="active" id="btn-ALL"      onclick="setFilter('ALL')">All</button>
   <button              id="btn-CRITICAL" onclick="setFilter('CRITICAL')">Critical</button>
   <button              id="btn-HIGH"     onclick="setFilter('HIGH')">High</button>
   <button              id="btn-MEDIUM"   onclick="setFilter('MEDIUM')">Medium</button>
   <button              id="btn-LOW"      onclick="setFilter('LOW')">Low</button>
+  <span style="margin-left:1.5rem;">Source:</span>
+  <select id="target-filter" onchange="setTargetFilter(this.value)">
+    <option value="ALL">All sources</option>
+  </select>
 </div>
 
-<div class="content">
-  <table>
-    <thead>
-      <tr>
-        <th>Package</th>
-        <th>CVE / ID</th>
-        <th>Title</th>
-        <th>Severity</th>
-        <th>Installed</th>
-        <th>Fixed in</th>
-        <th>References</th>
-      </tr>
-    </thead>
-    <tbody id="vuln-table">
-      {{- range . -}}
-        {{- range .Vulnerabilities -}}
-        <tr data-severity="{{.Severity}}">
-          <td class="pkg-name">{{.PkgName}}</td>
-          <td class="cve-id">{{.VulnerabilityID}}</td>
-          <td class="vuln-title">{{.Title}}</td>
-          <td><span class="badge badge-{{.Severity}}">{{.Severity}}</span></td>
-          <td class="version">{{.InstalledVersion}}</td>
-          <td class="version">{{.FixedVersion}}</td>
-          <td class="links">
-            {{- range .References -}}<a href="{{.}}" target="_blank" rel="noopener">{{.}}</a>{{- end -}}
-          </td>
-        </tr>
-        {{- end -}}
-      {{- end -}}
-    </tbody>
-  </table>
+<div class="content" id="content">
+  {{- range . -}}
+    {{- if .Vulnerabilities -}}
+    <div class="target-group" data-target="{{ .Target }}">
+      <div class="target-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="target-toggle">▼</span>
+        <span class="target-name">{{ .Target }}</span>
+        {{- if .Type -}}<span class="target-type">{{ .Type }}</span>{{- end -}}
+        {{- if .Class -}}<span class="target-class">{{ .Class }}</span>{{- end -}}
+        <span class="target-counts">
+          {{- $crit := 0 }}{{- $high := 0 }}{{- $med := 0 }}{{- $low := 0 -}}
+          {{- range .Vulnerabilities -}}
+            {{- if eq .Severity "CRITICAL" }}{{ $crit = add $crit 1 }}{{ end -}}
+            {{- if eq .Severity "HIGH"     }}{{ $high = add $high 1 }}{{ end -}}
+            {{- if eq .Severity "MEDIUM"   }}{{ $med  = add $med  1 }}{{ end -}}
+            {{- if eq .Severity "LOW"      }}{{ $low  = add $low  1 }}{{ end -}}
+          {{- end -}}
+          {{- if gt $crit 0 }}<span class="badge badge-CRITICAL">{{ $crit }} C</span>{{ end -}}
+          {{- if gt $high 0 }}<span class="badge badge-HIGH">{{ $high }} H</span>{{ end -}}
+          {{- if gt $med  0 }}<span class="badge badge-MEDIUM">{{ $med }} M</span>{{ end -}}
+          {{- if gt $low  0 }}<span class="badge badge-LOW">{{ $low }} L</span>{{ end -}}
+        </span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Package</th>
+            <th>CVE / ID</th>
+            <th>Title</th>
+            <th>Severity</th>
+            <th>Installed</th>
+            <th>Fixed in</th>
+            <th>References</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{- range .Vulnerabilities -}}
+          <tr data-severity="{{ .Severity }}" data-target="{{ $.Target }}">
+            <td>
+              <div class="pkg-name">{{ .PkgName }}</div>
+              {{- if .PkgPath -}}<div class="pkg-path">{{ .PkgPath }}</div>{{- end -}}
+            </td>
+            <td class="cve-id">{{ .VulnerabilityID }}</td>
+            <td class="vuln-title">{{ .Title }}</td>
+            <td><span class="badge badge-{{ .Severity }}">{{ .Severity }}</span></td>
+            <td class="version">{{ .InstalledVersion }}</td>
+            <td class="version">{{ .FixedVersion }}</td>
+            <td class="links">
+              {{- range .References -}}<a href="{{ . }}" target="_blank" rel="noopener">{{ . }}</a>{{- end -}}
+            </td>
+          </tr>
+          {{- end -}}
+        </tbody>
+      </table>
+    </div>
+    {{- end -}}
+  {{- end -}}
 </div>
 
 <script>
+  // Build target filter dropdown
+  const groups = Array.from(document.querySelectorAll('.target-group'));
+  const targetSelect = document.getElementById('target-filter');
+  groups.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.dataset.target;
+    opt.textContent = g.dataset.target;
+    targetSelect.appendChild(opt);
+  });
+
   // Summary counts
-  const rows = Array.from(document.querySelectorAll('#vuln-table tr[data-severity]'));
+  const rows = Array.from(document.querySelectorAll('tr[data-severity]'));
   const counts = {};
   rows.forEach(r => { const s = r.dataset.severity; counts[s] = (counts[s] || 0) + 1; });
   ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].forEach(s => {
@@ -133,11 +215,33 @@
     if (el) el.textContent = counts[s] || 0;
   });
 
-  // Filter
+  // Filter state
+  let currentSeverity = 'ALL';
+  let currentTarget = 'ALL';
+
+  function applyFilters() {
+    rows.forEach(r => {
+      const sevMatch = currentSeverity === 'ALL' || r.dataset.severity === currentSeverity;
+      const tgtMatch = currentTarget   === 'ALL' || r.dataset.target   === currentTarget;
+      r.classList.toggle('row-hidden', !(sevMatch && tgtMatch));
+    });
+    // Hide groups with no visible rows
+    groups.forEach(g => {
+      const visible = g.querySelectorAll('tr[data-severity]:not(.row-hidden)').length;
+      g.classList.toggle('all-hidden', visible === 0);
+    });
+  }
+
   function setFilter(severity) {
+    currentSeverity = severity;
     document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-' + severity).classList.add('active');
-    rows.forEach(r => r.classList.toggle('row-hidden', severity !== 'ALL' && r.dataset.severity !== severity));
+    applyFilters();
+  }
+
+  function setTargetFilter(target) {
+    currentTarget = target;
+    applyFilters();
   }
 
   // Collapse links (show 3, toggle rest)
@@ -158,8 +262,8 @@
 
   // Empty state
   if (rows.length === 0) {
-    document.getElementById('vuln-table').innerHTML =
-      '<tr><td colspan="7" class="empty">No vulnerabilities found</td></tr>';
+    document.getElementById('content').innerHTML =
+      '<div class="empty">No vulnerabilities found</div>';
   }
 
   // Date
