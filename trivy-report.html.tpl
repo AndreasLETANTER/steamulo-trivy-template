@@ -221,7 +221,7 @@
             {{- range .Secrets }}
             <tr data-severity="{{ .Severity }}" data-kind="secret" data-target="{{ escapeXML $result.Target }}">
               <td class="cve-id">{{ escapeXML .RuleID }}</td>
-              <td class="version">{{ escapeXML .Category }}</td>
+              <td class="version">{{ escapeXML (printf "%s" .Category) }}</td>
               <td><span class="badge badge-{{ .Severity }}">{{ .Severity }}</span></td>
               <td class="vuln-title">{{ escapeXML .Title }}</td>
               <td class="version">{{ escapeXML $result.Target }}:{{ .StartLine }}</td>
