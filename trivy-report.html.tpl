@@ -12,6 +12,7 @@
       --low: #2e7d32;
       --unknown: #616161;
       --secret: #6a1b9a;
+      --kev: #b71c1c;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #212121; }
@@ -29,6 +30,7 @@
     .card-medium   { background: var(--medium); color: #212121; }
     .card-low      { background: var(--low); }
     .card-secret   { background: var(--secret); }
+    .card-kev      { background: var(--kev); }
 
     .filters { padding: .75rem 2rem; background: white; display: flex; gap: .5rem; border-bottom: 1px solid #e0e0e0; align-items: center; flex-wrap: wrap; }
     .filters span { font-size: .85rem; color: #757575; margin-right: .25rem; }
@@ -39,11 +41,13 @@
     }
     .filters button:hover { border-color: #9fa8da; }
     .filters button.active { border-color: #1a237e; background: #e8eaf6; color: #1a237e; }
+    .filters button#btn-KEV.active { border-color: var(--kev); background: #fdecea; color: var(--kev); }
     .filters select {
       padding: .35rem .75rem; border: 2px solid #e0e0e0; border-radius: 20px;
       font-size: .82rem; font-weight: 600; background: white; color: #424242;
       cursor: pointer; max-width: 320px;
     }
+    .filters .divider { width: 1px; height: 1.4rem; background: #e0e0e0; margin: 0 .5rem; }
 
     .content { padding: 1.5rem 2rem; }
 
@@ -90,6 +94,7 @@
     .badge-LOW      { background: var(--low); }
     .badge-UNKNOWN  { background: var(--unknown); }
     .badge-SECRET   { background: var(--secret); }
+    .badge-kev      { background: var(--kev); cursor: help; }
 
     .pkg-name { font-weight: 600; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
     .pkg-path { font-size: .72rem; color: #757575; font-family: 'SFMono-Regular', Consolas, monospace;
@@ -97,6 +102,12 @@
     .cve-id   { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
     .vuln-title { max-width: 260px; font-size: .84rem; color: #424242; }
     .version  { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
+
+    .epss { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; text-align: right; color: #757575; }
+    .epss-high { color: var(--critical); font-weight: 700; }
+    .epss-med  { color: var(--high); font-weight: 600; }
+    .epss-low  { color: #9e9e9e; }
+    .kev { text-align: center; }
 
     .links a { display: block; font-size: .75rem; color: #1565c0; word-break: break-all; margin-bottom: .15rem; }
     .toggle-links {
@@ -119,6 +130,7 @@
   <div class="card card-high">    <div class="count" id="cnt-HIGH">0</div>    <div class="label">High</div></div>
   <div class="card card-medium">  <div class="count" id="cnt-MEDIUM">0</div>  <div class="label">Medium</div></div>
   <div class="card card-low">     <div class="count" id="cnt-LOW">0</div>     <div class="label">Low</div></div>
+  <div class="card card-kev">     <div class="count" id="cnt-KEV">0</div>     <div class="label">KEV</div></div>
   <div class="card card-secret">  <div class="count" id="cnt-SECRET">0</div>  <div class="label">Secrets</div></div>
 </div>
 
@@ -129,6 +141,8 @@
   <button              id="btn-HIGH"     onclick="setFilter('HIGH')">High</button>
   <button              id="btn-MEDIUM"   onclick="setFilter('MEDIUM')">Medium</button>
   <button              id="btn-LOW"      onclick="setFilter('LOW')">Low</button>
+  <span class="divider"></span>
+  <button              id="btn-KEV"      onclick="toggleKev()">KEV only</button>
   <span style="margin-left:1.5rem;">Source:</span>
   <select id="target-filter" onchange="setTargetFilter(this.value)">
     <option value="ALL">All sources</option>
@@ -168,6 +182,8 @@
               <th>CVE / ID</th>
               <th>Title</th>
               <th>Severity</th>
+              <th>EPSS</th>
+              <th>KEV</th>
               <th>Installed</th>
               <th>Fixed in</th>
               <th>References</th>
@@ -175,7 +191,7 @@
           </thead>
           <tbody>
             {{- range .Vulnerabilities }}
-            <tr data-severity="{{ .Severity }}" data-kind="vuln" data-target="{{ escapeXML $result.Target }}">
+            <tr data-severity="{{ .Severity }}" data-kind="vuln" data-target="{{ escapeXML $result.Target }}" data-kev="{{ if .Custom }}{{ if .Custom.KEV }}true{{ end }}{{ end }}">
               <td>
                 <div class="pkg-name">{{ escapeXML .PkgName }}</div>
                 {{- if .PkgPath }}<div class="pkg-path">{{ escapeXML .PkgPath }}</div>{{- end }}
@@ -183,6 +199,8 @@
               <td class="cve-id">{{ .VulnerabilityID }}</td>
               <td class="vuln-title">{{ escapeXML .Title }}</td>
               <td><span class="badge badge-{{ .Severity }}">{{ .Severity }}</span></td>
+              <td class="epss {{ if .Custom }}{{ .Custom.EPSSClass }}{{ end }}">{{ if .Custom }}{{ .Custom.EPSS }}{{ else }}-{{ end }}</td>
+              <td class="kev">{{- if .Custom }}{{- if .Custom.KEV }}<span class="badge badge-kev"{{ if .Custom.KEVDueDate }} title="Échéance CISA : {{ .Custom.KEVDueDate }}"{{ end }}>KEV</span>{{- end }}{{- end -}}</td>
               <td class="version">{{ escapeXML .InstalledVersion }}</td>
               <td class="version">{{ escapeXML .FixedVersion }}</td>
               <td class="links">
@@ -252,25 +270,30 @@
   const vulnRows   = rows.filter(r => r.dataset.kind !== 'secret');
   const secretRows = rows.filter(r => r.dataset.kind === 'secret');
 
-  // cartes de sévérité : CVE uniquement (les secrets ne polluent pas le compte)
+  // cartes de severite : CVE uniquement (les secrets ne polluent pas le compte)
   const counts = {};
   vulnRows.forEach(r => { const s = r.dataset.severity; counts[s] = (counts[s] || 0) + 1; });
   ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].forEach(s => {
     const el = document.getElementById('cnt-' + s);
     if (el) el.textContent = counts[s] || 0;
   });
-  // carte secrets : compte indépendant
+  // carte KEV : nombre de CVE activement exploitees
+  const kevEl = document.getElementById('cnt-KEV');
+  if (kevEl) kevEl.textContent = vulnRows.filter(r => r.dataset.kev === 'true').length;
+  // carte secrets : compte independant
   const secEl = document.getElementById('cnt-SECRET');
   if (secEl) secEl.textContent = secretRows.length;
 
   let currentSeverity = 'ALL';
   let currentTarget = 'ALL';
+  let kevOnly = false;
 
   function applyFilters() {
     rows.forEach(r => {
       const sevMatch = currentSeverity === 'ALL' || r.dataset.severity === currentSeverity;
       const tgtMatch = currentTarget   === 'ALL' || r.dataset.target   === currentTarget;
-      r.classList.toggle('row-hidden', !(sevMatch && tgtMatch));
+      const kevMatch = !kevOnly || r.dataset.kev === 'true';
+      r.classList.toggle('row-hidden', !(sevMatch && tgtMatch && kevMatch));
     });
     groups.forEach(g => {
       const visible = g.querySelectorAll('tr[data-severity]:not(.row-hidden)').length;
@@ -280,13 +303,19 @@
 
   function setFilter(severity) {
     currentSeverity = severity;
-    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filters button:not(#btn-KEV)').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-' + severity).classList.add('active');
     applyFilters();
   }
 
   function setTargetFilter(target) {
     currentTarget = target;
+    applyFilters();
+  }
+
+  function toggleKev() {
+    kevOnly = !kevOnly;
+    document.getElementById('btn-KEV').classList.toggle('active', kevOnly);
     applyFilters();
   }
 
