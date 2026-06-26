@@ -183,7 +183,7 @@
               <th>CVE / ID</th>
               <th>Title</th>
               <th>Severity</th>
-              <th style="text-align:center">EPSS</th>
+              <th style="text-align:center;cursor:pointer;user-select:none" onclick="sortByEpss(this)" title="Trier par EPSS">EPSS <span class="sort-arrow">▼</span></th>
               <th style="text-align:center">KEV</th>
               <th>Installed</th>
               <th>Fixed in</th>
@@ -192,7 +192,7 @@
           </thead>
           <tbody>
             {{- range .Vulnerabilities }}
-            <tr data-severity="{{ .Severity }}" data-kind="vuln" data-target="{{ escapeXML $result.Target }}" data-kev="{{ if .Custom }}{{ if .Custom.KEV }}true{{ end }}{{ end }}">
+            <tr data-severity="{{ .Severity }}" data-kind="vuln" data-target="{{ escapeXML $result.Target }}" data-kev="{{ if .Custom }}{{ if .Custom.KEV }}true{{ end }}{{ end }}" data-epss="{{ if .Custom }}{{ if .Custom.EPSSScore }}{{ .Custom.EPSSScore }}{{ end }}{{ end }}">
               <td>
                 <div class="pkg-name">{{ escapeXML .PkgName }}</div>
                 {{- if .PkgPath }}<div class="pkg-path">{{ escapeXML .PkgPath }}</div>{{- end }}
@@ -334,6 +334,24 @@
     };
     cell.appendChild(btn);
   });
+
+  // tri EPSS au clic sur l'en-tete : reordonne chaque tbody independamment.
+  // valeur brute via data-epss ; vide (pas de score) => -1, donc relegue en bas.
+  let epssDesc = true;
+  function sortByEpss(th) {
+    epssDesc = !epssDesc;
+    document.querySelectorAll('.sort-arrow').forEach(a => a.textContent = '');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = epssDesc ? '▼' : '▲';
+
+    document.querySelectorAll('table tbody').forEach(tbody => {
+      const trs = Array.from(tbody.querySelectorAll('tr[data-kind="vuln"]'));
+      if (!trs.length) return;
+      const val = tr => { const v = parseFloat(tr.dataset.epss); return Number.isFinite(v) ? v : -1; };
+      trs.sort((a, b) => epssDesc ? val(b) - val(a) : val(a) - val(b));
+      trs.forEach(tr => tbody.appendChild(tr));
+    });
+  }
 
   document.getElementById('report-date').textContent =
     'Generated on ' + new Date().toLocaleString();
