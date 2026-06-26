@@ -103,11 +103,12 @@
     .vuln-title { max-width: 260px; font-size: .84rem; color: #424242; }
     .version  { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; }
 
-    .epss { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; text-align: right; color: #757575; }
+    .epss { font-family: 'SFMono-Regular', Consolas, monospace; font-size: .82rem; white-space: nowrap; text-align: center; color: #757575; }
     .epss-high { color: var(--critical); font-weight: 700; }
     .epss-med  { color: var(--high); font-weight: 600; }
     .epss-low  { color: #9e9e9e; }
     .kev { text-align: center; }
+    .kev-none { color: #bdbdbd; }
 
     .links a { display: block; font-size: .75rem; color: #1565c0; word-break: break-all; margin-bottom: .15rem; }
     .toggle-links {
@@ -182,8 +183,8 @@
               <th>CVE / ID</th>
               <th>Title</th>
               <th>Severity</th>
-              <th>EPSS</th>
-              <th>KEV</th>
+              <th style="text-align:center">EPSS</th>
+              <th style="text-align:center">KEV</th>
               <th>Installed</th>
               <th>Fixed in</th>
               <th>References</th>
@@ -200,7 +201,7 @@
               <td class="vuln-title">{{ escapeXML .Title }}</td>
               <td><span class="badge badge-{{ .Severity }}">{{ .Severity }}</span></td>
               <td class="epss {{ if .Custom }}{{ .Custom.EPSSClass }}{{ end }}">{{ if .Custom }}{{ .Custom.EPSS }}{{ else }}-{{ end }}</td>
-              <td class="kev">{{- if .Custom }}{{- if .Custom.KEV }}<span class="badge badge-kev"{{ if .Custom.KEVDueDate }} title="Échéance CISA : {{ .Custom.KEVDueDate }}"{{ end }}>KEV</span>{{- end }}{{- end -}}</td>
+              <td class="kev">{{- if .Custom }}{{- if .Custom.KEV }}<span class="badge badge-kev"{{ if .Custom.KEVDueDate }} title="Échéance CISA : {{ .Custom.KEVDueDate }}"{{ end }}>KEV</span>{{- else }}<span class="kev-none">—</span>{{- end }}{{- else }}<span class="kev-none">—</span>{{- end -}}</td>
               <td class="version">{{ escapeXML .InstalledVersion }}</td>
               <td class="version">{{ escapeXML .FixedVersion }}</td>
               <td class="links">
